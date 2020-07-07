@@ -1,0 +1,258 @@
+version: '3.1'
+
+
+#   ***************** mosquitto MQTT broker *********************
+services:
+  mosquitto:
+    image: eclipse-mosquitto
+    hostname: mosquitto   
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:rw
+#      - ./mosquitto/etc:/etc/mosquitto:ro
+#      - ./mosquitto/etc/mosquitto.d/auth-plugin.conf:/etc/mosquitto.d/auth-plugin.conf
+#      - ./mosquitto/log:/var/log/mosquitto:rw 
+#      - ./mosquitto/lib/:/var/lib/mosquitto:rw
+     
+    restart: on-failure
+    networks:
+      iot:
+        aliases:
+          - mosquitto
+# *************** node-red ****************
+  node-red:
+    build: ./node-red
+    restart: always
+    hostname: node-red
+    container_name: mynodered
+    user: "0"
+    ports:
+      - "1880:1880"
+    links:
+      - mosquitto:broker
+      - zookeeper:zookeeper
+            
+    depends_on:
+      - mosquitto
+    volumes:
+       - ./node-red/data:/data
+ #      - ./node-red/runtime:/root/.node-red
+    networks:
+      iot:
+        aliases:
+          - node-red
+  
+  zookeeper:
+    container_name: zookeeper
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+    networks:
+      iot:
+        aliases:
+          - zookeeper
+          
+  kafka:
+    container_name: kafka
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: 192.168.1.201
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    depends_on:
+      - zookeeper
+    
+    networks:
+      iot:
+        aliases:
+          - kafka   
+    volumes:
+      - ./kafka/logs:/tmp/kafka-logs
+      - ./kafka/data:/var/lib/kafka/data
+# ******** kafka manager *********
+  kafka-manager:
+    image: dockerkafka/kafka-manager:latest
+    container_name: kafka-manager
+    hostname: kafka-manager
+    restart: always
+    environment:
+      ZK_HOSTS: zookeeper:2181
+      APPLICATION_SECRET: letmein
+      KM_ARGS: -Djava.net.preferIPv4Stack=true
+    ports:
+      - "9999:9000"
+    links:
+      - zookeeper:zookeeper
+      
+    volumes:
+      - ./kafka-manager/conf:/opt/kafka-manager-1.2.7/conf
+    networks:
+      iot:
+        aliases:
+          - kafka-manager
+
+ 
+# ****** druid config
+
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    volumes:
+      - metadata_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=FoolishPassword
+      - POSTGRES_USER=druid
+      - POSTGRES_DB=druid
+    networks:
+      iot:
+        aliases:
+          - postgress    
+  # Need 3.5 or later for container nodes
+  zookeeper-druid:
+    container_name: zookeeper-druid
+    image: zookeeper:3.5
+    environment:
+      - ZOO_MY_ID=1
+    networks:
+      iot:
+        aliases:
+          - zookeeper-druid
+          
+  coordinator:
+    image: apache/druid:0.17.0
+    container_name: coordinator
+    volumes:
+      - ./druid/storage:/opt/data
+      - coordinator_var:/opt/druid/var
+    depends_on: 
+      - zookeeper-druid
+      - postgres
+    ports:
+      - "8081:8081"
+    command:
+      - coordinator
+    env_file:
+      - environment
+    networks:
+      iot:
+        aliases:
+          - coordinator
+
+  broker:
+    image: apache/druid:0.17.0
+    container_name: broker
+    volumes:
+      - broker_var:/opt/druid/var
+    depends_on: 
+      - zookeeper-druid
+      - postgres
+      - coordinator
+    ports:
+      - "8082:8082"
+    command:
+      - broker
+    env_file:
+      - environment
+    networks:
+      iot:
+        aliases:
+          - broker
+
+  historical:
+    image: apache/druid:0.17.0
+    container_name: historical
+    volumes:
+      - ./druid/storage:/opt/data
+      - historical_var:/opt/druid/var
+    depends_on: 
+      - zookeeper-druid
+      - postgres
+      - coordinator
+    ports:
+      - "8083:8083"
+    command:
+      - historical
+    env_file:
+      - environment
+    networks:
+      iot:
+        aliases:
+          - historical
+
+  middlemanager:
+    image: apache/druid:0.17.0
+    container_name: middlemanager
+    volumes:
+      - ./druid/storage:/opt/data
+      - middle_var:/opt/druid/var
+    depends_on: 
+      - zookeeper-druid
+      - postgres
+      - coordinator
+    ports:
+      - "8091:8091"
+    command:
+      - middleManager
+    env_file:
+      - environment
+    networks:
+      iot:
+        aliases:
+          - middlemanager
+          
+  router:
+    image: apache/druid:0.17.0
+    container_name: router
+    volumes:
+      - router_var:/opt/druid/var
+    depends_on:
+      - zookeeper-druid
+      - postgres
+      - coordinator
+    ports:
+      - "8888:8888"
+    command:
+      - router
+    env_file:
+      - environment
+    networks:
+      iot:
+        aliases:
+          - router
+  #   ************ grafana ***********
+  grafana:
+    container_name: grafana
+    hostname: grafana    
+    image: grafana/grafana
+    restart: always        
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./grafana/env.grafana
+    volumes:
+#      - ./grafana/etc:/etc/grafana
+#     sudo mkdir -p /volume1/docker/grafana/data; chown 472:472 /volume1/docker/grafana/data
+      - ./grafana/data:/var/lib/grafana
+#      - GF_SECURITY_ADMIN_PASSWORD=$PASSWORD
+#   user: "472"
+    user: "0"
+    networks:
+      iot:
+        aliases:
+          - grafana
+          
+volumes:
+  metadata_data: {}
+  middle_var: {}
+  historical_var: {}
+  broker_var: {}
+  coordinator_var: {}
+  router_var: {}
+
+networks:
+  iot:
+    driver: bridge
