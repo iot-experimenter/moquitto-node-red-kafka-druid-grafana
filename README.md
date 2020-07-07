@@ -13,6 +13,8 @@ https://www.youtube.com/watch?v=ToL5SPFUPaQ&t=2s`
     *  /kafka-manager/conf
     *  /druid/storage
     *  /grafana/data
+    *  /enviroment
+    
 * change ip adress in docker-compose to the ip of your NAS : `KAFKA_ADVERTISED_HOST_NAME: 192.168.1.201` 
 * then run docker-compose with `sudo docker-compose up -d --build`
 
