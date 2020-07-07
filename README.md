@@ -11,7 +11,7 @@ https://www.youtube.com/watch?v=ToL5SPFUPaQ&t=2s`
     *  /kafka/logs
     *  /kafka/data
     *  /kafka-manager/conf
-    *  /druid
+    *  /druid/storage
     *  /grafana/data
 
 * then run docker-compose with `sudo docker-compose up -d --build`
