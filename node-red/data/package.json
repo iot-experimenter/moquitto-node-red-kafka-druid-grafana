@@ -1,0 +1,10 @@
+{
+  "name": "node-red-project",
+  "description": "A Node-RED Project",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "node-red-contrib-kafka-node-fix": "~0.2.0",
+    "node-red-contrib-kafka-producer": "~0.1.13"
+  }
+}
