@@ -24,3 +24,18 @@ Connect on your local network to the dashboards with the ip of your NAS; in my c
 * http://192.168.1.201:1880/
 * http://192.168.1.201:9999/
 * http://192.168.1.201:3000/
+
+-> kafka-manager `http://192.168.1.201:9999/`
+create a new cluster...
+give it a name 
+connect to : `zookeeper:2181`
+create a new topic with kafka-manager
+
+
+-> ingestion of data from kafka in druid :
+* bootstrap servers :  `192.168.1.201:9092`
+write ingestion spec with wizard
+
+connect grafana to druid :
+http - url : 
+			http://192.168.1.201:9092
