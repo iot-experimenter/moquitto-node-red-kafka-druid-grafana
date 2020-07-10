@@ -34,7 +34,9 @@ services:
     links:
       - mosquitto:broker
       - zookeeper:zookeeper
-            
+    environment:
+      - TZ=Europe/Brussels
+      
     depends_on:
       - mosquitto
     volumes:
@@ -244,7 +246,28 @@ services:
       iot:
         aliases:
           - grafana
-          
+
+  #   ************ turnilo ***********
+  turnilo:
+    container_name: turnilo
+    hostname: turnilo    
+    image: uchhatre/turnilo
+    restart: always        
+    ports:
+      - "9090:9090"
+    environment:
+      - DRUID_BROKER_URL=http://192.168.1.201:8082
+#    volumes : 
+#      - ./turnilo/config:/etc/turnilo/config.yaml:rw
+#      - ./turnilo/logs:/var/log/turnilo/syslog.log
+    depends_on:
+      - router
+    networks:
+      iot:
+        aliases:
+          - turnilo 
+
+ 
 volumes:
   metadata_data: {}
   middle_var: {}
