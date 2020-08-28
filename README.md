@@ -40,4 +40,4 @@ write ingestion spec with wizard
 
 connect grafana to druid :
 http - url : 
-			http://192.168.1.201:9092
+			http://192.168.1.201:8082
