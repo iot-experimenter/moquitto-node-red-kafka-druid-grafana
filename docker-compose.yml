@@ -256,7 +256,7 @@ services:
     ports:
       - "9090:9090"
     environment:
-      - DRUID_BROKER_URL=192.168.1.201:8082
+      - DRUID_BROKER_URL= http://192.168.1.201:8082
 #    volumes : 
 #      - ./turnilo/config:/etc/turnilo/config.yaml:rw
 #      - ./turnilo/logs:/var/log/turnilo/syslog.log
